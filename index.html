@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clean To-Do List App</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --primary: #007bff;
+            --primary-hover: #0056b3;
+            --danger: #dc3545;
+            --danger-hover: #bd2130;
+            --edit: #ffc107;
+            --edit-hover: #e0a800;
+            --border: #e0e0e0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .todo-container {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 500px;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #2c3e50;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 12px 16px;
+            font-size: 16px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--primary);
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+
+        .btn-add {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-add:hover {
+            background-color: var(--primary-hover);
+        }
+
+        ul {
+            list-style: none;
+        }
+
+        .todo-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            background: #fafafa;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            margin-bottom: 10px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .todo-text {
+            flex: 1;
+            font-size: 16px;
+            word-break: break-all;
+            margin-right: 15px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-action {
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+
+        .btn-edit {
+            background-color: var(--edit);
+            color: #212529;
+        }
+
+        .btn-edit:hover {
+            background-color: var(--edit-hover);
+        }
+
+        .btn-delete {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background-color: var(--danger-hover);
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #888;
+            font-size: 14px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="todo-container">
+        <h1>My To-Do List</h1>
+        
+        <div class="input-group">
+            <input type="text" id="todo-input" placeholder="Add a new task..." autocomplete="off">
+            <button class="btn-add" id="add-btn">Add</button>
+        </div>
+
+        <ul id="todo-list"></ul>
+        <div id="empty-msg" class="empty-state">No tasks remaining!</div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const todoInput = document.getElementById('todo-input');
+        const addBtn = document.getElementById('add-btn');
+        const todoList = document.getElementById('todo-list');
+        const emptyMsg = document.getElementById('empty-msg');
+
+        // Application State (Loaded from localStorage)
+        let todos = JSON.parse(localStorage.getItem('todos')) || [];
+
+        // Core App Functions
+        function saveToLocalStorage() {
+            localStorage.setItem('todos', JSON.stringify(todos));
+        }
+
+        function renderTodos() {
+            todoList.innerHTML = '';
+            
+            if (todos.length === 0) {
+                emptyMsg.style.display = 'block';
+                return;
+            } else {
+                emptyMsg.style.display = 'none';
+            }
+
+            todos.forEach((todo, index) => {
+                const li = document.createElement('li');
+                li.className = 'todo-item';
+
+                const textSpan = document.createElement('span');
+                textSpan.className = 'todo-text';
+                textSpan.textContent = todo;
+
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'actions';
+
+                const editBtn = document.createElement('button');
+                editBtn.className = 'btn-action btn-edit';
+                editBtn.textContent = 'Edit';
+                editBtn.onclick = () => editTask(index);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn-action btn-delete';
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.onclick = () => deleteTask(index);
+
+                actionsDiv.appendChild(editBtn);
+                actionsDiv.appendChild(deleteBtn);
+                li.appendChild(textSpan);
+                li.appendChild(actionsDiv);
+                todoList.appendChild(li);
+            });
+        }
+
+        function addTask() {
+            const taskText = todoInput.value.trim();
+            if (taskText === '') return;
+
+            todos.push(taskText);
+            saveToLocalStorage();
+            renderTodos();
+            todoInput.value = '';
+            todoInput.focus();
+        }
+
+        function deleteTask(index) {
+            todos.splice(index, 1);
+            saveToLocalStorage();
+            renderTodos();
+        }
+
+        function editTask(index) {
+            const currentText = todos[index];
+            const newText = prompt('Edit your task:', currentText);
+            
+            if (newText !== null && newText.trim() !== '') {
+                todos[index] = newText.trim();
+                saveToLocalStorage();
+                renderTodos();
+            }
+        }
+
+        // Event Listeners
+        addBtn.addEventListener('click', addTask);
+        
+        todoInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                addTask();
+            }
+        });
+
+        // Initial App Load
+        renderTodos();
+    </script>
+</body>
+</html>
